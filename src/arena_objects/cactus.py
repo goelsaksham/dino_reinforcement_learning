@@ -1,25 +1,20 @@
 """
-This file defines the Dinosaur class that will help in drawing the dinosaur in the arena.
+This file defines the Cactus class that will help in drawing the dinosaur in the arena.
 """
 
 from arena_object import ArenaObject
-from utils.game_utils import load_sprite_sheet
 
 
-class Dinosaur(ArenaObject):
+class Cactus(ArenaObject):
 	def __init__(self, init_pos=(0, 0), init_vel=(1, 0), obj_acc=(0.1, -1.25),
-	             walk_dims=(10, 20), duck_dims=(20, 10),
-	             jump_velocity_add = 3, max_duck_time = 30,
-	             walking_figure_path=f'../../data/figs/dino.png',
+	             fugure_dims=(10, 20), catcus_path=f'../../data/figs/dino.png',
 	             duck_figure_path=f'../../data/figs/dino_ducking.png'):
-		super(Dinosaur, self).__init__(init_pos, init_vel, obj_acc, walk_dims)
+		super(Cactus, self).__init__(init_pos, init_vel, obj_acc, walk_dims)
 		self.__id = 0
 		self.__walk_fig_path = walking_figure_path
-		self.__walk_fig = load_sprite_sheet(self.__walk_fig_path, 5, 1, 44, 47, -1)
-		# self.__walk_fig_path  # load(self.walk_fig_path)
+		self.__walk_fig = self.__walk_fig_path  # load(self.walk_fig_path)
 		self.__duck_fig_path = duck_figure_path
-		self.__duck_fig = load_sprite_sheet('dino_ducking.png', 2, 1, 59, 47, -1)
-		# self.__duck_fig_path  # load(self.jump_fig_path)
+		self.__duck_fig = self.__duck_fig_path  # load(self.jump_fig_path)
 		self.__walking = True
 		self.__jumping = False
 		self.__ducking = False
@@ -45,11 +40,11 @@ class Dinosaur(ArenaObject):
 		return self.__ducking
 
 	def update_pos(self):
-		x_pos, y_pos = 0, Dinosaur.relu(self.get_y_pos() + self.get_y_vel())
+		x_pos, y_pos = 0, Cactus.relu(self.get_y_pos() + self.get_y_vel())
 		self.set_pos((x_pos, y_pos))
 
 	def update_velocity(self):
-		x_vel, y_vel = Dinosaur.relu(self.get_x_vel() + self.get_x_acc()), self.get_y_vel() + self.get_y_acc()
+		x_vel, y_vel = Cactus.relu(self.get_x_vel() + self.get_x_acc()), self.get_y_vel() + self.get_y_acc()
 		if self.get_y_pos() == 0:
 			y_vel = 0
 		self.set_vel((x_vel, y_vel))
