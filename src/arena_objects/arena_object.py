@@ -2,26 +2,31 @@
 This file defines the base class for an arena object. All the objects in the arena should be child of this class and
 implement all the methods required.
 """
-
+from pygame import Rect
 
 class ArenaObject:
-	def __init__(self, init_pos, init_vel, obj_acc, dims):
+	def __init__(self, object_id, init_pos, initial_velocity, object_acceleration, dimensions, arena_height):
 		"""
-		The coordinate system will be defined from the lower left as (0, 0) and upper right as (inf, inf)
+		The coordinate system will be defined from the bottom left as (0, 0) and upper right as (inf, inf)
 			* +ve value for velocity or acceleration in x-axis is movement towards right
 			* -ve value for velocity or acceleration in x-axis is movement towards left
 			* +ve value for velocity or acceleration in y-axis is movement upwards
 			* -ve value for velocity or acceleration in y-axis is movement downwards
 
 		:param init_pos: The initial position of the object in the arena. This contains the x, y coordinate of the
-		lower left corner of the rectangle signifying the object
-		:param init_vel:
-		:param obj_acc:
+						lower left corner of the rectangle signifying the object
+		:param initial_velocity: The initial velocity of the object
 		"""
+		self.__id = object_id
 		self.__x, self.__y = init_pos
-		self.__vx, self.__vy = init_vel
-		self.__ax, self.__ay = obj_acc
-		self.__width, self.__height = dims
+		self.__vx, self.__vy = initial_velocity
+		self.__ax, self.__ay = object_acceleration
+		self.__width, self.__height = dimensions
+		self.__arena_height = arena_height
+		self.__rect = Rect(self.__x, self.__arena_height - self.__y - self.__height, self.__width, self.__height)
+
+	def get_id(self):
+		return self.__id
 
 	def get_x_pos(self):
 		return self.__x
@@ -29,11 +34,17 @@ class ArenaObject:
 	def get_y_pos(self):
 		return self.__y
 
+	def get_position(self):
+		return self.get_x_pos(), self.get_y_pos()
+
 	def get_x_vel(self):
 		return self.__vx
 
 	def get_y_vel(self):
 		return self.__vy
+
+	def get_velocity(self):
+		return self.get_x_vel(), self.get_y_vel()
 
 	def get_x_acc(self):
 		return self.__ax
@@ -41,20 +52,53 @@ class ArenaObject:
 	def get_y_acc(self):
 		return self.__ay
 
+	def get_acceleration(self):
+		return self.get_x_acc(), self.get_y_acc()
+
 	def get_width(self):
 		return self.__width
 
 	def get_height(self):
 		return self.__height
 
-	def set_pos(self, pos):
-		self.__x, self.__y = pos
+	def get_dimensions(self):
+		return self.get_width(), self.get_height()
 
-	def set_vel(self, vel):
-		self.__vx, self.__vy = vel
+	def set_pos(self, position):
+		self.__x, self.__y = position
 
-	def set_acc(self, acc):
-		self.__ax, self.__ay = acc
+	def set_vel(self, velocity):
+		self.__vx, self.__vy = velocity
+
+	def set_acc(self, acceleration):
+		self.__ax, self.__ay = acceleration
 
 	def set_dims(self, dims):
 		self.__width, self.__height = dims
+
+	@staticmethod
+	def relu(val):
+		return max(0, val)
+
+	def move_rectangle(self, x, y):
+		self.__rect.move_ip(x, y)
+
+	def update_position(self):
+		x_pos = self.get_x_pos() + self.get_x_vel()
+		y_pos = ArenaObject.relu(self.get_y_pos() + self.get_y_vel())
+		self.set_pos((x_pos, y_pos))
+		self.move_rectangle(self.get_x_vel(), -self.get_y_vel())
+
+	def update_velocity(self):
+		x_vel = self.get_x_vel() + self.get_x_acc()
+		y_vel = self.get_y_vel() + self.get_y_acc()
+		self.set_vel((x_vel, y_vel))
+
+	def get_rectangle(self):
+		return self.__rect
+
+	def set_rectangle(self, new_rect):
+		self.__rect = new_rect
+
+	def get_arena_height(self):
+		return self.__arena_height

@@ -3,7 +3,7 @@ This is the file that contains the main module that runs the whole arena
 """
 import os
 import glob
-from arena_objects.dinosaur import Dinosaur
+from arena_objects.agent import Dinosaur
 import time
 import matplotlib.pyplot as plt
 import random

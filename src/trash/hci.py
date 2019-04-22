@@ -27,7 +27,7 @@ def main():
 if __name__ == '__main__':
     main()
 """
-from arena_objects.dinosaur import Dinosaur
+from arena_objects.agent import Dinosaur
 import time
 import matplotlib.pyplot as plt
 import pygame
@@ -40,7 +40,7 @@ def main():
 	counter, text = 20, '200'.rjust(3)
 	pygame.time.set_timer(pygame.USEREVENT, 1000)
 	font = pygame.font.SysFont('Consolas', 30)
-	my_dinosaur = Dinosaur(obj_acc=(0.1, -0.25))
+	my_dinosaur = Dinosaur(object_acceleration=(0.1, -0.25))
 	#x_cors = range(counter)
 	y_cors = []
 	keep_alive = True

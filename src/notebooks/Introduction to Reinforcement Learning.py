@@ -7,7 +7,7 @@
 
 # ### Section 1: Libraries and Modules
 
-# In[2]:
+# In[1]:
 
 
 import numpy as np
@@ -23,7 +23,7 @@ import keras.backend as K
 import gym
 
 from keras.models import Sequential
-from keras.layers import Dense, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten, Dropout
 from keras.optimizers import Adam
 
 from rl.agents.dqn import DQNAgent
@@ -31,7 +31,7 @@ from rl.policy import EpsGreedyQPolicy
 from rl.memory import SequentialMemory
 
 
-# In[3]:
+# In[2]:
 
 
 import warnings
@@ -42,7 +42,7 @@ warnings.filterwarnings('ignore')
 
 # ### Section 2: Defining the Environment
 
-# In[2]:
+# In[3]:
 
 
 ENV_NAME = 'CartPole-v0'
@@ -56,14 +56,14 @@ nb_actions = env.action_space.n
 
 # ### Section 3: Defining the ANN Architecture
 
-# In[13]:
+# In[4]:
 
 
 model = Sequential()
 model.add(Flatten(input_shape=(1,) + env.observation_space.shape))
 model.add(Dense(8))
 model.add(Activation('relu'))
-model.add(Dense(8))
+model.add(Dense(4))
 model.add(Activation('relu'))
 model.add(Dense(nb_actions))
 model.add(Activation('linear'))
@@ -72,7 +72,7 @@ model.summary()
 
 # ### Section 4: Training the Model using the Q-Learning Algorithm
 
-# In[14]:
+# In[5]:
 
 
 policy = EpsGreedyQPolicy()
@@ -85,17 +85,18 @@ dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 dqn.fit(env, nb_steps=5000, visualize=False, verbose=2)
 
 
-# In[16]:
+# In[7]:
 
 
 dqn.test(env, nb_episodes=10, visualize=True)
+env.close()
 
 
-# ## Ant Problem
+# ## Car Problem
 
 # ### Section 2: Defining the Environment
 
-# In[12]:
+# In[8]:
 
 
 ENV_NAME = 'MountainCar-v0'
@@ -109,7 +110,7 @@ nb_actions = env.action_space.n
 
 # ### Section 3: Defining the ANN Architecture
 
-# In[76]:
+# In[9]:
 
 
 model = Sequential()
@@ -127,7 +128,7 @@ model.summary()
 
 # ### Section 4: Training the Model using the Q-Learning Algorithm
 
-# In[84]:
+# In[10]:
 
 
 policy = EpsGreedyQPolicy()
@@ -140,7 +141,7 @@ dqn.compile(Adam(lr=1e-3), metrics=['mae'])
 dqn.fit(env, nb_steps=10000, visualize=False, verbose=1)
 
 
-# In[85]:
+# In[11]:
 
 
 dqn.test(env, nb_episodes=5, visualize=True)
@@ -149,7 +150,7 @@ env.close()
 
 # ### Section 5: Random Action
 
-# In[68]:
+# In[12]:
 
 
 env.reset()
@@ -162,4 +163,10 @@ for i in range(1000):
         env.step(2) # take a random action
         # env.step(env.action_space.sample()) # take a random action
 env.close()
+
+
+# In[ ]:
+
+
+
 
