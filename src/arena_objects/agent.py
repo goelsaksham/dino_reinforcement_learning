@@ -3,14 +3,16 @@ This file defines the Dinosaur class that will help in drawing the dinosaur in t
 """
 
 from arena_object import ArenaObject
-from pygame import Rect
+import numpy as np
 
 
 class Agent(ArenaObject):
 	def __init__(self, object_id, init_pos, initial_velocity, object_acceleration, dimensions, arena_height):
-		super(Agent, self).__init__(object_id, init_pos, initial_velocity, object_acceleration, dimensions, arena_height)
+		super(Agent, self).__init__(object_id, init_pos, initial_velocity, object_acceleration, dimensions,
+		                            arena_height)
 		self.__crashed = False
 		self.__current_action = 0
+		self.__total_reward = 0
 
 	def get_current_action(self):
 		return self.__current_action
@@ -27,6 +29,12 @@ class Agent(ArenaObject):
 	def set_action(self, action):
 		self.__current_action = action
 
+	def get_total_reward(self):
+		return self.__total_reward
+
+	def increase_reward(self, additional_rewards):
+		self.__total_reward += additional_rewards
+
 	@staticmethod
 	def get_action_map():
 		return {0: 'no_op', 1: 'low_jump', 2: 'high_jump', 3: 'duck'}
@@ -41,7 +49,7 @@ class Agent(ArenaObject):
 		except KeyError:
 			return 0
 
-	def get_action_name(self):
+	def get_current_action_name(self):
 		return self.get_action_map()[self.get_current_action()]
 
 	@staticmethod
@@ -139,15 +147,18 @@ class Dinosaur(Agent):
 
 	def walk(self):
 		self.__walking, self.__jumping, self.__ducking = True, False, False
-		# self.set_dims(self.__walk_dims)
+
+	# self.set_dims(self.__walk_dims)
 
 	def duck(self):
 		self.__walking, self.__jumping, self.__ducking = False, False, True
-		# self.set_dims(self.__duck_dims)
+
+	# self.set_dims(self.__duck_dims)
 
 	def jump(self):
 		self.__walking, self.__jumping, self.__ducking = False, True, False
-		# self.set_dims(self.__walk_dims)
+
+	# self.set_dims(self.__walk_dims)
 
 	def assert_state(self):
 		assert self.__id == 0
@@ -174,7 +185,6 @@ class Dinosaur(Agent):
 
 		self.get_rectangle().width, self.get_rectangle().height = self.get_width(), self.get_height()
 
-
 	def get_jump_acceleration(self, jump_type):
 		if jump_type == 'l':
 			return self.__low_jump_acc
@@ -183,7 +193,7 @@ class Dinosaur(Agent):
 		else:
 			raise ValueError(f'Invalid Jump Type')
 
-	def update(self, action_name):
+	def action_update(self, action_name):
 		# self.assert_state()
 		if action_name.lower() == 'high_jump' or action_name.lower() == 'low_jump':
 			# When jumping we immediately change state from the walking or ducking state
@@ -221,5 +231,40 @@ class Dinosaur(Agent):
 				self.walk()
 			self.update_position()
 			self.update_velocity()
+
+		if self.is_jumping():
+			if self.get_y_pos() == 0:
+				self.walk()
+
 		# After changing the state update the dimensions of the dinosaur accordingly
 		self.update_dimensions()
+
+	def update(self, action_name):
+		self.action_update(action_name)
+
+
+class GeneticAlgorithmAgent(Dinosaur):
+	def __init__(self, agent_weights, initial_position=(0, 0), initial_velocity=(0, 0),
+	             object_acceleration=(0.0, -0.5), walking_dimensions=(40, 80), ducking_dimensions=(80, 40),
+	             low_jump_acceleration=(0.0, 11.5), high_jump_acceleration=(0.0, 15.0), arena_height=400):
+		super(GeneticAlgorithmAgent, self).__init__(initial_position, initial_velocity, object_acceleration,
+		                                            walking_dimensions, ducking_dimensions, low_jump_acceleration,
+		                                            high_jump_acceleration, arena_height)
+		assert len(agent_weights.shape) == 2
+		assert agent_weights.shape[0] == len(self.get_action_map())
+		self.__weights = agent_weights
+
+	def get_weights(self):
+		return self.__weights
+
+	@staticmethod
+	def softmax_activation(vector):
+		return np.exp(vector) / np.sum(np.exp(vector))
+
+	def update(self, environment_state):
+		assert self.get_weights().shape[1] == len(environment_state)
+		action_prob = GeneticAlgorithmAgent.softmax_activation(np.matmul(self.get_weights(), environment_state))
+		best_action = np.argmax(action_prob)
+		self.set_action(best_action)
+		print(self.get_current_action_name())
+		self.action_update(self.get_current_action_name())

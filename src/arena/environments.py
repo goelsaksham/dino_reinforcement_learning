@@ -17,11 +17,9 @@ class ChromeTRexRush:
 		self.__level_increase_threshold = level_threshold
 		self.__velocity_increase = 0
 		self.__need_to_increase_velocity = False
-		self.__total_reward = 0
 		self.__score = 0
 		self.__high_score_file_path = high_score_file_path
 		self.__high_score = self.load_high_score()
-		self.__all_obstacles = [self.__cacti, self.__birds]
 
 	def get_high_score_file_path(self):
 		return self.__high_score_file_path
@@ -44,12 +42,6 @@ class ChromeTRexRush:
 
 	def set_current_level(self, new_level):
 		self.__level = new_level
-
-	def get_total_reward(self):
-		return self.__total_reward
-
-	def increase_reward(self, additional_rewards):
-		self.__total_reward += additional_rewards
 
 	def increase_score(self, increase_by=1):
 		self.__score += increase_by
@@ -197,87 +189,15 @@ class ChromeTRexRush:
 		self.__birds = self.__birds[remove_counter:]
 
 	def get_all_obstacle_list(self):
-		return self.__all_obstacles
+		return self.get_all_cacti() + self.get_all_birds()
 
 	def update_obstacles(self):
-		for obstacle in self.get_all_cacti() + self.get_all_birds():
+		for obstacle in self.get_all_obstacle_list():
 			# print(obstacle.get_x_pos())
 			obstacle.update()
 
-	def update_environment(self, agent_action):
-		# Set the action of the agent
-		# self.get_agent().set_action(agent_action)
-		# Update the agents
-		# self.update_agent(self.get_agent().get_action_name())
+	def update_environment(self):
 		# update the obstacles
 		self.update_obstacles()
 		# Remove the obstacles which are out of the environment
 		self.remove_out_of_environment_obstacles()
-
-		# Get all the obstacles
-		# all_obstacles = self.get_all_cacti() + self.get_all_birds()
-		# if self.get_agent().has_collided_with_obstacle(all_obstacles):
-		# 	self.get_agent().set_crash(True)
-
-		# Check whether the agent has collided with an obstacle before calculating
-		# self.increase_reward(self.get_agent().get_reward())
-
-	def play(self):
-		pygame.init()
-		pygame.font.init()  # you have to call this at the start,
-		# if you want to use this module.
-		myfont = pygame.font.SysFont('Comic Sans MS', 20)
-		screen = pygame.display.set_mode((self.get_environment_width(), self.get_environment_height()))
-		screen.fill((255, 255, 255))
-		pygame.display.update()
-		clock = pygame.time.Clock()
-		counter = 0
-		self.draw_environment_objects(screen)
-		pygame.display.update()
-		pygame.key.set_repeat(100, 1)
-
-		while not self.get_agent().has_crashed():
-			screen.fill((255, 255, 255))
-			key_down = False
-			# Check for any event
-			for event in pygame.event.get():
-				if event.type == pygame.QUIT:
-					pygame.quit()
-					return
-				if event.type == pygame.KEYDOWN:
-					key_down = True
-					self.update_environment(
-						self.get_agent().get_action_from_action_name(self.get_key_action(event.key)))
-			if not key_down:
-				self.update_environment(0)
-
-			if counter % 60 == 0:
-				print('Seconds Elapsed:', counter // 60)
-				print(len(self.get_all_cacti()))
-				# Add an obstacle
-				self.add_obstacle()
-				# Increase the Score
-				self.increase_score()
-				# Increase the level if needed
-				self.increase_level()
-
-			counter += 1
-			self.draw_environment_objects(screen)
-			screen.blit(myfont.render(f'Level: {self.get_current_level()}', False, (0, 0, 0)), (0, 0))
-			screen.blit(
-				myfont.render(f'Score: {self.get_current_score()}, Reward: {np.round(self.get_total_reward(), 3)}',
-				              False, (0, 0, 0)), (self.get_environment_width() - 300, 0))
-			pygame.display.update()
-
-			clock.tick(60)
-
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				pygame.quit()
-				return
-		pygame.quit()
-
-
-if __name__ == '__main__':
-	env = ChromeTRexRush()
-	env.play()
