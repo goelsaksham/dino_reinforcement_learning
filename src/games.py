@@ -272,9 +272,9 @@ class GA_Game():
 
 
 if __name__ == '__main__':
-	# my_game = HumanGame(Dinosaur(), ChromeTRexRush())
 	# my_game = GA_Game(GeneticAlgorithmAgent(np.random.rand(4, 6)), ChromeTRexRush())
-	mat = np.random.randn(4, 6)
+	# mat = np.random.randn(4, 6)
 	# mat[-1, :] = 1
-	my_game = GA_Game(GeneticAlgorithmAgent(mat), ChromeTRexRush())
+	# my_game = GA_Game(GeneticAlgorithmAgent(mat), ChromeTRexRush())
+	my_game = HumanGame(Dinosaur(), ChromeTRexRush())
 	my_game.play()

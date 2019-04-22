@@ -104,7 +104,7 @@ class Agent(ArenaObject):
 			elif self.get_current_action() == 3:
 				return -0.001
 			else:
-				return 0
+				return 1
 
 
 class Dinosaur(Agent):
