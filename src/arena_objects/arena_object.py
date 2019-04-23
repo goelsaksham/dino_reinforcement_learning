@@ -3,6 +3,7 @@ This file defines the base class for an arena object. All the objects in the are
 implement all the methods required.
 """
 
+
 class ArenaObject:
 	def __init__(self, object_id, init_pos, initial_velocity, object_acceleration, dimensions):
 		"""
