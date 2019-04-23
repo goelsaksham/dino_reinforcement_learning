@@ -86,6 +86,3 @@ class ArenaObject:
 		x_vel = self.get_x_vel() + self.get_x_acc()
 		y_vel = self.get_y_vel() + self.get_y_acc()
 		self.set_vel((x_vel, y_vel))
-
-	def get_arena_height(self):
-		return self.__arena_height
