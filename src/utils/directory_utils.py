@@ -1,5 +1,5 @@
-import os
 import glob
+import os
 
 
 def exist_directory(directory_path):

@@ -1,5 +1,4 @@
 import pygame
-from utils.directory_utils import *
 from pygame import RLEACCEL
 
 
@@ -26,15 +25,15 @@ def load_sprite_sheet(sprites_path, nx, ny,
 
     sprites = []
 
-    x_size = sheet_rectangle.width/nx
-    y_size = sheet_rectangle.height/ny
+    x_size = sheet_rectangle.width / nx
+    y_size = sheet_rectangle.height / ny
 
     for i in range(0, ny):
         for j in range(0, nx):
-            rect = pygame.Rect((j*x_size,i*y_size,x_size,y_size))
+            rect = pygame.Rect((j * x_size, i * y_size, x_size, y_size))
             image = pygame.Surface(rect.size)
             image = image.convert()
-            image.blit(sprites_sheet,(0,0),rect)
+            image.blit(sprites_sheet, (0, 0), rect)
             if color_key is not None:
                 if color_key is -1:
                     color_key = image.get_at((0, 0))
@@ -50,11 +49,11 @@ def load_sprite_sheet(sprites_path, nx, ny,
 def display_game_over_message(screen, width, height, return_button_image, game_over_image):
     return_button_rect = return_button_image.get_rect()
     return_button_rect.centerx = width / 2
-    return_button_rect.top = height*0.52
+    return_button_rect.top = height * 0.52
 
     gameover_rect = game_over_image.get_rect()
     gameover_rect.centerx = width / 2
-    gameover_rect.centery = height*0.35
+    gameover_rect.centery = height * 0.35
 
     screen.blit(return_button_image, return_button_rect)
     screen.blit(game_over_image, gameover_rect)
