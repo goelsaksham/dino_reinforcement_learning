@@ -2,10 +2,9 @@
 This file defines the base class for an arena object. All the objects in the arena should be child of this class and
 implement all the methods required.
 """
-from pygame import Rect
 
 class ArenaObject:
-	def __init__(self, object_id, init_pos, initial_velocity, object_acceleration, dimensions, arena_height):
+	def __init__(self, object_id, init_pos, initial_velocity, object_acceleration, dimensions):
 		"""
 		The coordinate system will be defined from the bottom left as (0, 0) and upper right as (inf, inf)
 			* +ve value for velocity or acceleration in x-axis is movement towards right
@@ -22,8 +21,6 @@ class ArenaObject:
 		self.__vx, self.__vy = initial_velocity
 		self.__ax, self.__ay = object_acceleration
 		self.__width, self.__height = dimensions
-		self.__arena_height = arena_height
-		self.__rect = Rect(self.__x, self.__arena_height - self.__y - self.__height, self.__width, self.__height)
 
 	def get_id(self):
 		return self.__id
@@ -80,25 +77,15 @@ class ArenaObject:
 	def relu(val):
 		return max(0, val)
 
-	def move_rectangle(self, x, y):
-		self.__rect.move_ip(x, y)
-
 	def update_position(self):
 		x_pos = self.get_x_pos() + self.get_x_vel()
 		y_pos = ArenaObject.relu(self.get_y_pos() + self.get_y_vel())
 		self.set_pos((x_pos, y_pos))
-		self.move_rectangle(self.get_x_vel(), -self.get_y_vel())
 
 	def update_velocity(self):
 		x_vel = self.get_x_vel() + self.get_x_acc()
 		y_vel = self.get_y_vel() + self.get_y_acc()
 		self.set_vel((x_vel, y_vel))
-
-	def get_rectangle(self):
-		return self.__rect
-
-	def set_rectangle(self, new_rect):
-		self.__rect = new_rect
 
 	def get_arena_height(self):
 		return self.__arena_height
