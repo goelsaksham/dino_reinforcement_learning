@@ -20,6 +20,14 @@ class ChromeTRexRush:
         self.__high_score_file_path = high_score_file_path
         self.__high_score = self.load_high_score()
 
+    def reset_environment(self):
+        self.__cacti = []
+        self.__birds = []
+        self.__level = 0
+        self.__velocity_increase = 0
+        self.__need_to_increase_velocity = False
+        self.__score = 0
+
     def get_high_score_file_path(self):
         return self.__high_score_file_path
 
