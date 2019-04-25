@@ -14,8 +14,12 @@ def construct_path(directory_path, directory_content):
     return os.path.join(directory_path, directory_content)
 
 
-def check_output_directory(directory_path):
+def check_output_directory(directory_path, remove_dir=False):
+    import shutil
     if exist_directory(directory_path):
+        if remove_dir:
+            shutil.rmtree(directory_path)
+            os.makedirs(directory_path)
         return True
     else:
         try:

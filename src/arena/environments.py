@@ -8,7 +8,8 @@ from arena_objects.obstacles import Bird, Cactus
 
 class ChromeTRexRush:
     def __init__(self, environment_width=800, environment_height=400,
-                 level_threshold=15, high_score_file_path=f'../../data/high_score.txt'):
+                 level_threshold=15, high_score_file_path=f'../../data/high_score.txt',
+                 bird_add_threshold=1):
         self.__environment_width, self.__environment_height = environment_width, environment_height
         self.__cacti = []
         self.__birds = []
@@ -19,6 +20,10 @@ class ChromeTRexRush:
         self.__score = 0
         self.__high_score_file_path = high_score_file_path
         self.__high_score = self.load_high_score()
+        self.__bird_add_threshold = bird_add_threshold
+
+    def get_bird_add_threshold(self):
+        return self.__bird_add_threshold
 
     def reset_environment(self):
         self.__cacti = []
@@ -86,8 +91,12 @@ class ChromeTRexRush:
 
     def should_add(self, x):
         from scipy.stats import expon
-        return np.random.rand(1) * 3 < expon().cdf((self.get_environment_width() - x) * 3 /
-                                                   self.get_environment_width())
+        offset = np.random.choice([50, 100, 150, 200, 250, 300], 1)
+        if x < self.get_environment_width() - offset:
+            return np.random.rand(1) * 2.0 < expon().cdf((self.get_environment_width() - x) * 4 /
+                                                       self.get_environment_width())
+        else:
+            return False
 
     def get_velocity_increase(self):
         return self.__velocity_increase
@@ -99,15 +108,13 @@ class ChromeTRexRush:
             # print(last_cactus.get_x_pos())
             if last_cactus.get_x_pos() + last_cactus.get_width() < self.get_environment_width():
                 if self.should_add(last_cactus.get_x_pos() + last_cactus.get_width()):
-                    cactus = Cactus((self.get_environment_width(), 0),
-                                    initial_velocity=(-5 - 1 * self.get_velocity_increase(), 0))
+                    cactus = Cactus((self.get_environment_width(), 0))
                     self.__cacti.append(cactus)
                     return True
         else:
-            # 40% chance
-            if np.random.rand(1) < 0.4:
-                cactus = Cactus((self.get_environment_width(), 0),
-                                initial_velocity=(-5 - 0.5 * self.get_velocity_increase(), 0))
+            # 90% chance
+            if np.random.rand(1) < 0.95:
+                cactus = Cactus((self.get_environment_width(), 0))
                 self.__cacti.append(cactus)
                 return True
 
@@ -117,58 +124,25 @@ class ChromeTRexRush:
             last_bird = self.get_last_bird()
             if last_bird.get_x_pos() + last_bird.get_width() < self.get_environment_width():
                 if self.should_add(last_bird.get_x_pos()):
-                    bird = Bird((self.get_environment_width(), 50),
-                                initial_velocity=(-5 - 0.5 * self.get_velocity_increase(), 0))
-                    print('Adding Bird')
+                    bird = Bird((self.get_environment_width(), 50))
                     self.__birds.append(bird)
                     return True
         else:
-            # 40% chance
-            if np.random.rand(1) < 0.4:
-                bird = Bird((self.get_environment_width(), 50),
-                            initial_velocity=(-5 - 0.5 * self.get_velocity_increase(), 0))
-                print('Adding Bird')
+            # 90% chance
+            if np.random.rand(1) < 0.95:
+                bird = Bird((self.get_environment_width(), 50))
                 self.__birds.append(bird)
                 return True
 
-    def velocity_should_increase(self):
-        return self.__need_to_increase_velocity
-
-    def should_add_object(self):
-        level_threshold = self.get_level_increase_threshold()
-        current_level = self.get_current_level()
-        current_score = self.get_current_score()
-        if current_level > 0:
-            if self.velocity_should_increase():
-                return False
-            elif current_score < (level_threshold * (current_level + 1)) - 2:
-                self.__velocity_increase += 1
-                self.__need_to_increase_velocity = True
-                return False
-            else:
-                return True
-        else:
-            return True
-
     def add_obstacle(self):
-        if self.should_add_object():
-            # Add cactus
-            added_cactus = self.add_cactus()
-            # Add Birds only when the agent has cleared level 2
-            if self.get_current_level() > 0 and not added_cactus:
-                # Add bird
+        if self.get_current_level() > self.get_bird_add_threshold():
+            # try to add either bird or cactus
+            if np.random.rand(1) < 0.8:
+                self.add_cactus()
+            else:
                 self.add_bird()
         else:
-            # Add obstacle only when no other obstacle is present in the environment. Wait till then
-            if len(self.get_all_cacti()) == 0 and len(self.get_all_birds()) == 0:
-                # Add cactus
-                added_cactus = self.add_cactus()
-                # Add Birds only when the agent has cleared level 2
-                if self.get_current_level() > 1 and not added_cactus:
-                    # Add bird
-                    self.add_bird()
-                # Once can add the obstacle, just change the flag coz do not need to increase the velocity any more
-                self.__need_to_increase_velocity = False
+            self.add_cactus()
 
     def get_level_increase_threshold(self):
         return self.__level_increase_threshold
@@ -198,13 +172,29 @@ class ChromeTRexRush:
     def get_all_obstacle_list(self):
         return self.get_all_cacti() + self.get_all_birds()
 
-    def update_obstacles(self):
+    def get_closest_obstacle(self):
+        cacti = self.get_all_cacti()
+        birds = self.get_all_birds()
+        if len(cacti) == 0 and len(birds) == 0:
+            return None
+        else:
+            if len(cacti) == 0:
+                return birds[0]
+            elif len(birds) == 0:
+                return cacti[0]
+            else:
+                if cacti[0].get_x_pos() < birds[0].get_x_pos():
+                    return cacti[0]
+                else:
+                    return birds[0]
+
+    def update_obstacles(self, agent_x_velocity=0):
         for obstacle in self.get_all_obstacle_list():
             # print(obstacle.get_x_pos())
-            obstacle.update()
+            obstacle.update(agent_x_velocity)
 
-    def update_environment(self):
+    def update_environment(self, agent_x_velocity=0):
         # update the obstacles
-        self.update_obstacles()
+        self.update_obstacles(agent_x_velocity)
         # Remove the obstacles which are out of the environment
         self.remove_out_of_environment_obstacles()

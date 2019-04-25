@@ -9,9 +9,10 @@ from arena_object import ArenaObject
 
 class Agent(ArenaObject):
     def __init__(self, object_id, init_pos, initial_velocity, object_acceleration, object_dimension,
-                 walking_dimensions=(40, 80), ducking_dimensions=(80, 40), low_jump_acceleration=(0.0, 11.5),
-                 high_jump_acceleration=(0.0, 15.0)):
+                 walking_dimensions=(40, 80), ducking_dimensions=(80, 40), low_jump_acceleration=[0.0, 11.5],
+                 high_jump_acceleration=[0.0, 15.0]):
         super(Agent, self).__init__(object_id, init_pos, initial_velocity, object_acceleration, object_dimension)
+        self.__old_initial_velocity = initial_velocity
         self.__walking = True
         self.__jumping = False
         self.__ducking = False
@@ -22,6 +23,7 @@ class Agent(ArenaObject):
         self.__low_jump_acc = low_jump_acceleration
         self.__current_action = 0
         self.__total_reward = 0
+        self.__action_counts = [0 for _ in range(len(self.get_action_name_to_action_dict()))]
 
     def is_jumping(self):
         return self.__jumping
@@ -31,6 +33,14 @@ class Agent(ArenaObject):
 
     def is_ducking(self):
         return self.__ducking
+
+    def reset_agent(self):
+        self.walk()
+        self.set_crashed(False)
+        self.__current_action = 0
+        self.__total_reward = 0
+        self.__action_counts = [0 for _ in range(len(self.get_action_name_to_action_dict()))]
+        self.set_vel(self.__old_initial_velocity)
 
     def walk(self):
         self.__walking, self.__jumping, self.__ducking = True, False, False
@@ -63,6 +73,8 @@ class Agent(ArenaObject):
         self.__crashed = crash
 
     def get_total_reward(self):
+        # if self.reward_adjustment():
+        #     return -30
         return self.__total_reward
 
     def increase_reward(self, additional_reward):
@@ -73,12 +85,12 @@ class Agent(ArenaObject):
         return {0: 'no_op', 1: 'low_jump', 2: 'high_jump', 3: 'duck'}
 
     @staticmethod
-    def get_action_name_action_dict():
+    def get_action_name_to_action_dict():
         return {'no_op': 0, 'low_jump': 1, 'high_jump': 2, 'duck': 3}
 
     def get_action_from_action_name(self, action_name):
         try:
-            return self.get_action_name_action_dict()[action_name]
+            return self.get_action_name_to_action_dict()[action_name]
         except KeyError:
             return 0
 
@@ -135,9 +147,9 @@ class Agent(ArenaObject):
             elif self.get_current_action() == 2:
                 return -5
             elif self.get_current_action() == 3:
-                return -0.001
+                return -1
             else:
-                return 1
+                return 0
 
     def get_jump_acceleration(self, jump_type):
         if jump_type == 'l':
@@ -158,6 +170,35 @@ class Agent(ArenaObject):
                           self.get_y_vel() + self.get_jump_acceleration('h')[1]))
         # Change the jump variables accordingly so we can show in jump state
         self.jump()
+
+    def get_all_actions_counts(self):
+        return self.__action_counts
+
+    def increase_action_count(self):
+        self.__action_counts[self.get_current_action()] += 1
+
+    def get_action_count(self, action_name='no_op'):
+        return self.get_all_actions_counts()[self.get_action_name_to_action_dict()[action_name]]
+
+    def reward_adjustment(self):
+        high_jump_count = self.get_action_count('high_jump')
+        low_jump_count = self.get_action_count('low_jump')
+        no_op_count = self.get_action_count('no_op')
+        return high_jump_count > no_op_count or low_jump_count > no_op_count
+
+    def update_position(self):
+        # Dinosaur always stay at the same x coordinate. However The y position should be changed based on whether
+        # the dinosaur is jumping or not
+        x_pos, y_pos = 0, Dinosaur.relu(self.get_y_pos() + self.get_y_vel())
+        self.set_pos((x_pos, y_pos))
+
+    def update_velocity(self):
+        # Update the velocity based upon the acceleration
+        x_vel, y_vel = Dinosaur.relu(self.get_x_vel() + self.get_x_acc()), self.get_y_vel() + self.get_y_acc()
+        # Make sure the y velocity is 0 if the object is on ground (y == 0)
+        if self.get_y_pos() == 0:
+            y_vel = 0
+        self.set_vel((x_vel, y_vel))
 
     def update_agent(self):
         # get the current action for the agent
@@ -202,32 +243,25 @@ class Agent(ArenaObject):
 
         # After changing the state update the dimensions of the dinosaur accordingly
         self.update_dimensions()
+        # Increase the count of the action
+        self.increase_action_count()
 
     def update(self):
         self.update_agent()
 
+    def update_agent_acceleration(self, level):
+        self.__ax = level * 0.0002
+        self.__high_jump_acc[0] = level * 0.0004
+        self.__low_jump_acc[0] = level * 0.0004
+
 
 class Dinosaur(Agent):
-    def __init__(self, initial_position=(0, 0), initial_velocity=(0, 0), object_acceleration=(0.0, -0.5),
-                 walking_dimensions=(40, 80), ducking_dimensions=(80, 40), low_jump_acceleration=(0.0, 11.5),
-                 high_jump_acceleration=(0.0, 15.0)):
+    def __init__(self, initial_position=(0, 0), initial_velocity=(5.0, 0), object_acceleration=(0.002, -0.5),
+                 walking_dimensions=(25, 80), ducking_dimensions=(80, 25), low_jump_acceleration=[0.0, 11.5],
+                 high_jump_acceleration=[0.0, 15.0]):
         super(Dinosaur, self).__init__(0, initial_position, initial_velocity, object_acceleration,
                                        walking_dimensions, walking_dimensions, ducking_dimensions,
                                        low_jump_acceleration, high_jump_acceleration)
-
-    def update_position(self):
-        # Dinosaur always stay at the same x coordinate. However The y position should be changed based on whether
-        # the dinosaur is jumping or not
-        x_pos, y_pos = 0, Dinosaur.relu(self.get_y_pos() + self.get_y_vel())
-        self.set_pos((x_pos, y_pos))
-
-    def update_velocity(self):
-        # Update the velocity based upon the acceleration
-        x_vel, y_vel = Dinosaur.relu(self.get_x_vel() + self.get_x_acc()), self.get_y_vel() + self.get_y_acc()
-        # Make sure the y velocity is 0 if the object is on ground (y == 0)
-        if self.get_y_pos() == 0:
-            y_vel = 0
-        self.set_vel((x_vel, y_vel))
 
     def assert_state(self):
         assert self.__id == 0
@@ -248,9 +282,9 @@ class Dinosaur(Agent):
 
 
 class GeneticAlgorithmAgent(Agent):
-    def __init__(self, agent_weights, initial_position=(0, 0), initial_velocity=(0, 0),
-                 object_acceleration=(0.0, -0.5), walking_dimensions=(40, 80), ducking_dimensions=(80, 40),
-                 low_jump_acceleration=(0.0, 11.5), high_jump_acceleration=(0.0, 15.0)):
+    def __init__(self, agent_weights, initial_position=(0, 0), initial_velocity=(5.0, 0),
+                 object_acceleration=(0.002, -0.5), walking_dimensions=(30, 80), ducking_dimensions=(80, 30),
+                 low_jump_acceleration=[0.002, 11.5], high_jump_acceleration=[0.002, 15.0]):
         super(GeneticAlgorithmAgent, self).__init__(0, initial_position, initial_velocity, object_acceleration,
                                                     walking_dimensions, walking_dimensions, ducking_dimensions,
                                                     low_jump_acceleration, high_jump_acceleration)
@@ -296,10 +330,37 @@ class GeneticAlgorithmAgent(Agent):
         else:
             # Else return reward based on the action
             if self.get_current_action() == 1:
-                return -0.01
+                return 0.000005
             elif self.get_current_action() == 2:
-                return -0.03
+                return 0.000001
             elif self.get_current_action() == 3:
-                return 0.0001
+                return 0.00001
             else:
-                return 0.03
+                return 0.00015
+
+
+class QLearningAgent(Agent):
+    def __init__(self, environment_state=None, initial_position=(0, 0), initial_velocity=(5.0, 0),
+                 object_acceleration=(0.002, -0.5), walking_dimensions=(30, 80), ducking_dimensions=(80, 30),
+                 low_jump_acceleration=[0.002, 11.5], high_jump_acceleration=[0.002, 15.0]):
+        self.__environment_state = environment_state
+        super(QLearningAgent, self).__init__(0, initial_position, initial_velocity, object_acceleration,
+                                             walking_dimensions, walking_dimensions, ducking_dimensions,
+                                             low_jump_acceleration, high_jump_acceleration)
+
+    def get_environment_state(self):
+        return self.__environment_state
+
+    def set_environment_state(self, new_environment_state):
+        self.__environment_state = new_environment_state
+
+    def get_best_action(self, q_function=None):
+        if np.random.rand(1) < 0.99:
+            return np.argmax(q_function[self.get_environment_state()])
+        else:
+            return np.random.choice([0, 1, 2, 3], 1)[0]
+
+    def update(self, q_function=None):
+        best_action = self.get_best_action(q_function)
+        self.set_current_action(best_action)
+        self.update_agent()
