@@ -39,5 +39,5 @@ class Bird(Obstacle):
         super(Bird, self).__init__(2, initial_position, initial_velocity, object_acceleration, bird_dimension)
 
     def update(self, agent_x_velocity=0):
-        self.update_position(agent_x_velocity + 2)
+        self.update_position(agent_x_velocity)
         self.update_velocity()

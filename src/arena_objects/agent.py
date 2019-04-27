@@ -13,6 +13,7 @@ class Agent(ArenaObject):
                  high_jump_acceleration=[0.0, 15.0]):
         super(Agent, self).__init__(object_id, init_pos, initial_velocity, object_acceleration, object_dimension)
         self.__old_initial_velocity = initial_velocity
+        self.__old_acceleration = object_acceleration
         self.__walking = True
         self.__jumping = False
         self.__ducking = False
@@ -40,7 +41,9 @@ class Agent(ArenaObject):
         self.__current_action = 0
         self.__total_reward = 0
         self.__action_counts = [0 for _ in range(len(self.get_action_name_to_action_dict()))]
+        self.set_pos((0, 0))
         self.set_vel(self.__old_initial_velocity)
+        self.set_acc(self.__old_acceleration)
 
     def walk(self):
         self.__walking, self.__jumping, self.__ducking = True, False, False
@@ -250,9 +253,9 @@ class Agent(ArenaObject):
         self.update_agent()
 
     def update_agent_acceleration(self, level):
-        self.__ax = level * 0.0002
-        self.__high_jump_acc[0] = level * 0.0004
-        self.__low_jump_acc[0] = level * 0.0004
+        self.__ax = level * 0.000002
+        self.__high_jump_acc[0] = level * 0.000002
+        self.__low_jump_acc[0] = level * 0.000002
 
 
 class Dinosaur(Agent):
@@ -341,8 +344,8 @@ class GeneticAlgorithmAgent(Agent):
 
 class QLearningAgent(Agent):
     def __init__(self, environment_state=None, initial_position=(0, 0), initial_velocity=(5.0, 0),
-                 object_acceleration=(0.002, -0.5), walking_dimensions=(30, 80), ducking_dimensions=(80, 30),
-                 low_jump_acceleration=[0.002, 11.5], high_jump_acceleration=[0.002, 15.0]):
+                 object_acceleration=(0.00002, -0.5), walking_dimensions=(30, 80), ducking_dimensions=(80, 30),
+                 low_jump_acceleration=[0.00002, 11.5], high_jump_acceleration=[0.00002, 15.0]):
         self.__environment_state = environment_state
         super(QLearningAgent, self).__init__(0, initial_position, initial_velocity, object_acceleration,
                                              walking_dimensions, walking_dimensions, ducking_dimensions,

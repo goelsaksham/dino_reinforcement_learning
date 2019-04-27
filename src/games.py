@@ -521,8 +521,6 @@ class QLearningGame(Game):
         agent_action = self.get_agent().get_current_action()
         old_state_current_action_q_value = self.__q_function[(*old_environment_state, agent_action)]
         agent_action_reward = self.get_agent().get_current_action_reward()
-        if agent_action_reward == -100:
-            print('Here')
         new_state_best_action = self.get_best_action(new_environment_state)
         new_state_best_action_q_value = self.get_q_function()[(*new_environment_state, new_state_best_action)]
         self.__q_function[(*old_environment_state, agent_action)] = old_state_current_action_q_value + \
@@ -530,79 +528,101 @@ class QLearningGame(Game):
 
     @staticmethod
     def discretize_agent_speed(speed):
-        if speed < 12:
+        if speed < 8:
             return 0 # Low speed
-        elif speed < 20:
+        elif speed < 14:
             return 1 # medium speed
         else:
             return 2 # high speed
 
     @staticmethod
-    def discretize_height(norm_height):
-        if norm_height < 0.2:
+    def discretize_y_coordinate(y_cor):
+        if y_cor < 10:
             return 0
-        elif norm_height < 0.5:
+        elif y_cor < 90:
+            return 1
+        elif y_cor < 200:
+            return 2
+        else:
+            return 3
+
+    @staticmethod
+    def discretize_x_coordinate_wrt_agent(agent, closest_obstacle):
+        agent_end_x_coordinate = agent.get_x_pos() + agent.get_width()
+        obstacle_x_coordinate = closest_obstacle.get_x_pos()
+        if obstacle_x_coordinate < agent_end_x_coordinate:
+            return 0
+        elif obstacle_x_coordinate < agent_end_x_coordinate + 100:
+            return 0
+        elif obstacle_x_coordinate < agent_end_x_coordinate + 200:
             return 1
         else:
             return 2
 
     @staticmethod
-    def discretize_obstacle_position(obstacles, environment):
-        if len(obstacles) == 0:
-            return 3
+    def discretize_obstacle_width(obstacle_width):
+        if obstacle_width <= 50:
+            return 0
+        elif obstacle_width <= 100:
+            return 1
         else:
-            norm_dist = obstacles[0].get_x_pos() / environment.get_environment_width()
-            if norm_dist < 0.2:
-                return 0
-            elif norm_dist < 0.6:
-                return 1
-            else:
-                return 2
+            return 2
 
     @staticmethod
-    def discretize_cacti_width(cacti):
-        if len(cacti) == 0:
-            return 2
+    def discretize_agent_state(agent):
+        if agent.is_walking():
+            return 0
+        elif agent.is_jumping():
+            return 1
         else:
-            if cacti[0].get_width() < 40:
-                return 0
-            elif cacti[0].get_width() < 80:
-                return 1
-            else:
-                return 2
+            return 2
 
     def get_environment_state(self):
         """
         The environment state is a tuple representing the state of the environment and current value of the agent.
         The state is as follows:
-            * Index 0: The discretized speed of the agent (low, medium, high)
-            * Index 1: The height of the agent (low, medium, high)
-            * Index 2: The distance to the closest cactus (near, ok, far, not here)
-            * Index 3: The length of the cactus (small, medium, large)
-            * Index 4: The distance to the closes bird (near, ok, far, not here)
-            * Index 5: The height of the nearest bird (low, med, high)
+            * Index 0: The discretized speed of the agent (low, medium, high) - 3
+            ### NOT Anymore * Index 1: The height of the agent (ground, low, medium, high) - 3 ###
+            * Index 1: Current state of the agent (walk, jump, duck)
+            * Index 2: The distance to the closest obstacle. (very_near, near, in_sight, very_near, near,
+            in_sight, not_in_sight) - 7
+                       for both cactus and bird (3 X 2) + 1
+            * Index 3: Distance between the two closest obstacles (very near, ok, just not there) - 3
+            * Index 4: The length of the obstacle (small, medium, large) - 3
+            * Index 5: The y_position of the obstacle (ground, low, medium, high) - 4
         :return:
         """
         agent = self.get_agent()
-        environment = self.get_environment()
-
         agent_speed = self.discretize_agent_speed(agent.get_x_vel())
-        agent_height = \
-            self.discretize_height((agent.get_y_pos()+agent.get_height())/environment.get_environment_height())
+        # agent_height = self.discretize_y_coordinate(agent.get_y_pos())
+        agent_state = self.discretize_agent_state(agent)
 
-        cacti = environment.get_all_cacti()
-        birds = environment.get_all_birds()
-        cacti_distance = self.discretize_obstacle_position(cacti, environment)
-        cacti_width = self.discretize_cacti_width(cacti)
-        bird_distance = self.discretize_obstacle_position(birds, environment)
+        environment = self.get_environment()
+        sorted_obstacles = environment.get_objects_sorted_by_distance()
+        closest_obstacle_distance = -1      # essentially acting as not in sight
+        within_obstacle_distance = -1
+        closest_obstacle_width = 0
+        closest_obstacle_y_cor = 0
+        if len(sorted_obstacles) > 0:
+            closest_obstacle_type, closest_obstacle_x_cor, closest_obstacle = sorted_obstacles[0]
+            closest_obstacle_distance = self.discretize_x_coordinate_wrt_agent(agent, closest_obstacle)
+            if closest_obstacle_type == 'b':
+                closest_obstacle_distance += 3
+            closest_obstacle_width = self.discretize_obstacle_width(closest_obstacle.get_width())
+            closest_obstacle_y_cor = self.discretize_y_coordinate(closest_obstacle.get_y_pos())
+            # Check for within distance
+            if len(sorted_obstacles) > 1:
+                _, second_closest_obstacle_x_cor, _ = sorted_obstacles[1]
+                if second_closest_obstacle_x_cor - (closest_obstacle_x_cor + closest_obstacle.get_width()) < 200:
+                    within_obstacle_distance = 0
+                else:
+                    within_obstacle_distance = 1
 
-        bird_height = \
-            self.discretize_height(birds[0].get_y_pos()/environment.get_environment_height() if len(birds) != 0 else 1)
-
-        return agent_speed, agent_height, cacti_distance, cacti_width, bird_distance, bird_height
+        return agent_speed, agent_state, closest_obstacle_distance, within_obstacle_distance, \
+               closest_obstacle_width, closest_obstacle_y_cor
 
     def save_q_function(self, weight_save_directory_path, iteration_num):
-        if check_output_directory(weight_save_directory_path, True):
+        if check_output_directory(weight_save_directory_path, False):
             file_name = construct_path(weight_save_directory_path, f'q_func_{iteration_num}.npy')
             np.save(file_name, self.get_q_function())
 
@@ -646,10 +666,12 @@ class QLearningGame(Game):
             new_environment_state = self.get_environment_state()
             self.update_q_function(old_environment_state, new_environment_state)
             # Print elapsed time
-            if counter % 45 == 0:
+            division = 60 if visualize else 1000
+            if counter % division == 0:
                 # print('Seconds Elapsed:', counter // 60)
                 # Update the environment statistics (add obstacles, increase level, increase score)
                 self.update_environment_statistics()
+                # print(self.get_agent().get_x_acc(), self.get_agent().get_x_vel())
             counter += 1
             if visualize:
                 # Draw all the environment objects
@@ -679,10 +701,9 @@ class QLearningGame(Game):
         for iteration_num in range(self.get_maximum_iterations()):
             self.get_environment().reset_environment()
             self.get_agent().reset_agent()
-            print(f'Iteration: {iteration_num}')
             self.run_iteration(visualize)
-            print(f'Score: {self.get_environment().get_current_score()}')
-            if iteration_num % 10 == 0:
+            print(f'Iteration: {iteration_num+1}', f'Score: {self.get_environment().get_current_score()}')
+            if iteration_num % 50 == 0:
                 self.save_q_function(weights_parent_directory, iteration_num)
 
         self.save_q_function(weights_parent_directory, iteration_num)
@@ -712,6 +733,7 @@ if __name__ == '__main__':
     #                           Q LEARNING                        #
     ###############################################################
     init_agent = QLearningAgent()
-    my_game = QLearningGame(init_agent, ChromeTRexRush(bird_add_threshold=0), np.zeros((3, 3, 4, 3, 4, 3, 4)))
+    my_game = QLearningGame(init_agent, ChromeTRexRush(bird_add_threshold=-1), np.zeros((3, 3, 7, 3, 3, 4, 4)),
+                            max_iterations=1000)
     my_game.play_game(True)
     print('End of Main!')

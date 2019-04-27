@@ -93,7 +93,7 @@ class ChromeTRexRush:
         from scipy.stats import expon
         offset = np.random.choice([50, 100, 150, 200, 250, 300], 1)
         if x < self.get_environment_width() - offset:
-            return np.random.rand(1) * 2.0 < expon().cdf((self.get_environment_width() - x) * 4 /
+            return np.random.rand(1) * 3.0 < expon().cdf((self.get_environment_width() - x) * 4 /
                                                        self.get_environment_width())
         else:
             return False
@@ -176,17 +176,43 @@ class ChromeTRexRush:
         cacti = self.get_all_cacti()
         birds = self.get_all_birds()
         if len(cacti) == 0 and len(birds) == 0:
-            return None
+            return None, None
         else:
             if len(cacti) == 0:
-                return birds[0]
+                return birds[0], 'b'
             elif len(birds) == 0:
-                return cacti[0]
+                return cacti[0], 'c'
             else:
                 if cacti[0].get_x_pos() < birds[0].get_x_pos():
-                    return cacti[0]
+                    return cacti[0], 'c'
                 else:
-                    return birds[0]
+                    return birds[0], 'b'
+
+    def get_objects_sorted_by_distance(self):
+        cacti = self.get_all_cacti()
+        birds = self.get_all_birds()
+        ret = []
+        cacti_counter = 0
+        birds_counter = 0
+        while len(ret) != len(cacti) + len(birds):
+            if cacti_counter == len(cacti):
+                bird = birds[birds_counter]
+                ret.append(('b', bird.get_x_pos(), bird))
+                birds_counter += 1
+            elif birds_counter == len(birds):
+                cactus = cacti[cacti_counter]
+                ret.append(('c', cactus.get_x_pos(), cactus))
+                cacti_counter += 1
+            else:
+                cactus = cacti[cacti_counter]
+                bird = birds[birds_counter]
+                if cactus.get_x_pos() < bird.get_x_pos():
+                    ret.append(('c', cactus.get_x_pos(), cactus))
+                    cacti_counter += 1
+                else:
+                    ret.append(('b', bird.get_x_pos(), bird))
+                    birds_counter += 1
+        return ret
 
     def update_obstacles(self, agent_x_velocity=0):
         for obstacle in self.get_all_obstacle_list():
